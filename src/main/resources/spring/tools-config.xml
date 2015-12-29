@@ -6,6 +6,8 @@
        xmlns:aop="http://www.springframework.org/schema/aop"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
        xmlns="http://www.springframework.org/schema/beans"
        xsi:schemaLocation="http://www.springframework.org/schema/aop
          http://www.springframework.org/schema/aop/spring-aop.xsd
@@ -15,7 +17,18 @@
          http://www.springframework.org/schema/cache/spring-cache.xsd
          http://www.springframework.org/schema/context
          http://www.springframework.org/schema/context/spring-context.xsd">
+	
+	<!-- spring aspect -->
 
+	<bean id="loggingAspect" class="org.springframework.samples.petclinic.util.LoggingAspect" />
+	<aop:config proxy-target-class="true">
+		<aop:aspect id="aspectLoggging" ref="loggingAspect">
+	        <!-- <aop:pointcut id="servicePointcut" expression="execution(* *..*.web.*Controller*.*(..))" />  -->
+	        <aop:pointcut id="servicePointcut" expression="execution(* org.springframework.samples.petclinic..web.*.*())" />
+	        <aop:around method="logAround" pointcut-ref="servicePointcut"  />
+	    </aop:aspect>
+	</aop:config>
+	
     <!--
         Simply defining this bean will cause requests to owner names to be saved.
         This aspect is defined in petclinic.jar's META-INF/aop.xml file.
@@ -37,13 +50,23 @@
     <!-- enables scanning for @Cacheable annotation -->
     <cache:annotation-driven/>
 
-    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager">
+    <!-- <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager">
         <property name="cacheManager" ref="ehcache"/>
     </bean>
 
     <bean id="ehcache" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
         <property name="configLocation" value="classpath:cache/ehcache.xml"/>
-    </bean>
+    </bean> -->
+    
+   <bean id="jedisConnFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:use-pool="true">
+   	 	<property name="hostName" value="127.0.0.1" />
+    	<property name="port" value="6379" />
+   </bean>
 
-
+	<!-- redis template definition -->
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate" p:connection-factory-ref="jedisConnFactory"/>
+	<bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager">
+		<constructor-arg ref="redisTemplate"></constructor-arg>
+	</bean>
+	     
 </beans>
